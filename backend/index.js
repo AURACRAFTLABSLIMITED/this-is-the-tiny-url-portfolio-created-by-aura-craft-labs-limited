@@ -29,18 +29,34 @@ dotenv.config();
 
 const app = express();
 
+// Needed on Vercel / reverse proxies so req.protocol and host are correct
+app.set("trust proxy", 1);
+
 // ------------------------------------------------------------
 // CORS Configuration
 // ------------------------------------------------------------
 // We allow the frontend (running on localhost:3000 in development)
 // to make requests to this backend. Without this, the browser
 // blocks the requests for security reasons (Same-Origin Policy).
+// Allow local dev + any Vercel deployment of this project.
+// Same-origin requests on Vercel (frontend + /api rewrite) also work fine.
 const corsOptions = {
-  origin: [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://localhost:5173",
-  ],
+  origin: function (origin, callback) {
+    // Allow requests with no origin (server-to-server, curl, redirects)
+    if (!origin) return callback(null, true);
+
+    const allowed = [
+      "http://localhost:3000",
+      "http://127.0.0.1:3000",
+      "http://localhost:5173",
+      process.env.CLIENT_URL,
+    ].filter(Boolean);
+
+    if (allowed.includes(origin) || origin.endsWith(".vercel.app")) {
+      return callback(null, true);
+    }
+    return callback(null, true); // permissive for portfolio/demo; tighten later if needed
+  },
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,

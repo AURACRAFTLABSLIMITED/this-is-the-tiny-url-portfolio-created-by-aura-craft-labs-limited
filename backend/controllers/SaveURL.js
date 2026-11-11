@@ -54,9 +54,19 @@ export const SaveURL = async (req, res) => {
 
     await newURL.save();
 
-    // Build the full short URL that the frontend will display & use
-    // When someone visits this URL, the RedirectURL controller will run
-    const baseUrl = process.env.BASE_URL || `http://localhost:${process.env.PORT || 5050}`;
+    // Build the full short URL that the frontend will display & use.
+    // When someone visits this URL, the RedirectURL controller will run.
+    // Priority:
+    //   1. BASE_URL from .env (best for production – set this on Vercel)
+    //   2. The actual host that received this request (works automatically on Vercel)
+    //   3. localhost fallback for pure local development
+    let baseUrl = process.env.BASE_URL;
+    if (!baseUrl) {
+      const protocol = req.headers["x-forwarded-proto"] || req.protocol || "http";
+      const host = req.headers["x-forwarded-host"] || req.get("host") || `localhost:${process.env.PORT || 5050}`;
+      baseUrl = `${protocol}://${host}`;
+    }
+    // Keep the same path your routes already use: /api/urls/:shortId
     const shortURL = `${baseUrl}/api/urls/${shortId}`;
 
     return res.status(200).json({
